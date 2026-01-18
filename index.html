@@ -640,6 +640,24 @@
                 </div>
             </div>
 
+            <!-- Payment Recovery Modal -->
+            <div id="payment-recovery-modal"
+                style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+                <div
+                    style="background:white; padding:2rem; max-width:400px; border-radius:8px; text-align:center; border-top: 6px solid #FF4500;">
+                    <h2 style="font-size:1.2rem; margin-bottom:1rem; color:#121212;">Payment Confirmation</h2>
+                    <p style="margin-bottom:1.5rem; color:#555;">We detected a pending audit session but couldn't verify
+                        the payment automatically.</p>
+                    <p style="margin-bottom:2rem; font-weight:boot;">Did you complete the payment on Stripe?</p>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-primary" onclick="confirmManualPayment()" style="background:#27ae60;">Yes, I
+                            Paid</button>
+                        <button class="btn-primary" onclick="cancelPaymentRecovery()" style="background:#999;">No,
+                            Cancel</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Paywall -->
             <div class="screen" id="screen-paywall">
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
@@ -837,7 +855,6 @@
         }
 
         // Check for return from payment
-        // Check for return from payment
         window.addEventListener('load', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const isSuccess = urlParams.get('success') === 'true';
@@ -846,35 +863,52 @@
             if (isPending) {
                 if (isSuccess) {
                     console.log("Payment confirmed. Resuming audit...");
-
-                    // Restore state
-                    uploadedFileBase64 = localStorage.getItem('psc_file');
-                    uploadedFileMimeType = localStorage.getItem('psc_mime');
-                    manualData = localStorage.getItem('psc_manual');
-
-                    // Resume
-                    if (uploadedFileBase64 || manualData) {
-                        runLoaderB();
-                    } else {
-                        console.error("Critical: State lost despite pending flag.");
-                        alert("Error: Audit data expired. Please re-upload.");
-                    }
+                    restoreAndRun();
                 } else {
-                    console.warn("Payment verification failed or cancelled.");
+                    console.warn("Payment verification param missing. Showing manual recovery.");
+                    document.getElementById('payment-recovery-modal').style.display = 'flex';
                 }
 
-                // Clean up 
-                localStorage.removeItem('psc_pending');
-                localStorage.removeItem('psc_file');
-                localStorage.removeItem('psc_mime');
-                localStorage.removeItem('psc_manual');
-
-                // Clean URL
+                // Clean URL if success
                 if (isSuccess) {
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
             }
         });
+
+        function restoreAndRun() {
+            // Restore state
+            uploadedFileBase64 = localStorage.getItem('psc_file');
+            uploadedFileMimeType = localStorage.getItem('psc_mime');
+            manualData = localStorage.getItem('psc_manual');
+
+            // Clean up 
+            localStorage.removeItem('psc_pending');
+            localStorage.removeItem('psc_file');
+            localStorage.removeItem('psc_mime');
+            localStorage.removeItem('psc_manual');
+
+            // Resume
+            if (uploadedFileBase64 || manualData) {
+                runLoaderB();
+            } else {
+                alert("Session expired. Please start over.");
+                cancelPaymentRecovery();
+            }
+        }
+
+        window.confirmManualPayment = function () {
+            document.getElementById('payment-recovery-modal').style.display = 'none';
+            restoreAndRun();
+        }
+
+        window.cancelPaymentRecovery = function () {
+            document.getElementById('payment-recovery-modal').style.display = 'none';
+            localStorage.removeItem('psc_pending');
+            localStorage.removeItem('psc_file');
+            localStorage.removeItem('psc_mime');
+            localStorage.removeItem('psc_manual');
+        }
 
         // --- Analytics Hook ---
         function trackEvent(eventName, eventData) {
