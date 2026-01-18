@@ -21,13 +21,26 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname)); // Serve client files
 
 // --- AI SETUP (NEW SDK) ---
-console.log("Loading API Key...", process.env.GEMINI_API_KEY ? "Found" : "MISSING");
+const apiKey = process.env.GEMINI_API_KEY;
+console.log("Loading API Key...", apiKey ? "Found" : "MISSING (Check Netlify Env Vars)");
 
 // Initialize Client (New Pattern)
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let ai;
+try {
+    if (apiKey) {
+        ai = new GoogleGenAI({ apiKey });
+    } else {
+        console.warn("WARNING: GEMINI_API_KEY is not set. AI calls will fail.");
+    }
+} catch (err) {
+    console.error("Failed to initialize GoogleGenAI:", err);
+}
 
 // --- ROUTES ---
 
+app.get('/api/health', (req, res) => {
+    res.json({ status: "ok", time: new Date().toISOString(), env_check: !!process.env.GEMINI_API_KEY });
+});
 
 
 app.post('/api/analyze', async (req, res) => {
@@ -58,7 +71,12 @@ app.post('/api/analyze', async (req, res) => {
                 { inlineData: { mimeType: detectedMimeType, data: base64Data } }
             ];
         } else {
+            if (!ai) {
+                throw new Error("Server configuration error: GEMINI_API_KEY is missing. Please set it in Netlify Site Settings.");
+            }
+
             requestContents = [{ text: prompt }];
+
         }
 
         // Using stable Gemini model
