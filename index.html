@@ -825,46 +825,49 @@
 
         window.initiatePurchase = function () {
             // Save state
-            if (uploadedFileBase64) sessionStorage.setItem('psc_file', uploadedFileBase64);
-            if (uploadedFileMimeType) sessionStorage.setItem('psc_mime', uploadedFileMimeType);
-            if (manualData) sessionStorage.setItem('psc_manual', manualData);
+            if (uploadedFileBase64) localStorage.setItem('psc_file', uploadedFileBase64);
+            if (uploadedFileMimeType) localStorage.setItem('psc_mime', uploadedFileMimeType);
+            if (manualData) localStorage.setItem('psc_manual', manualData);
 
             // Set flag
-            sessionStorage.setItem('psc_pending', 'true');
+            localStorage.setItem('psc_pending', 'true');
 
             // Redirect
             window.location.href = STRIPE_LINK;
         }
 
         // Check for return from payment
+        // Check for return from payment
         window.addEventListener('load', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const isSuccess = urlParams.get('success') === 'true';
-            const isPending = sessionStorage.getItem('psc_pending') === 'true';
+            const isPending = localStorage.getItem('psc_pending') === 'true';
 
             if (isPending) {
                 if (isSuccess) {
                     console.log("Payment confirmed. Resuming audit...");
 
                     // Restore state
-                    uploadedFileBase64 = sessionStorage.getItem('psc_file');
-                    uploadedFileMimeType = sessionStorage.getItem('psc_mime');
-                    manualData = sessionStorage.getItem('psc_manual');
+                    uploadedFileBase64 = localStorage.getItem('psc_file');
+                    uploadedFileMimeType = localStorage.getItem('psc_mime');
+                    manualData = localStorage.getItem('psc_manual');
 
                     // Resume
                     if (uploadedFileBase64 || manualData) {
                         runLoaderB();
+                    } else {
+                        console.error("Critical: State lost despite pending flag.");
+                        alert("Error: Audit data expired. Please re-upload.");
                     }
                 } else {
                     console.warn("Payment verification failed or cancelled.");
-                    // Optionally could alert user or just do nothing (stay on landing/current page)
                 }
 
                 // Clean up 
-                sessionStorage.removeItem('psc_pending');
-                sessionStorage.removeItem('psc_file');
-                sessionStorage.removeItem('psc_mime');
-                sessionStorage.removeItem('psc_manual');
+                localStorage.removeItem('psc_pending');
+                localStorage.removeItem('psc_file');
+                localStorage.removeItem('psc_mime');
+                localStorage.removeItem('psc_manual');
 
                 // Clean URL
                 if (isSuccess) {
