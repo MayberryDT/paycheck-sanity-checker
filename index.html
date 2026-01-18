@@ -855,60 +855,63 @@
         }
 
         // Check for return from payment
+        // Check for return from payment
         window.addEventListener('load', () => {
+            // 1. Capture params
             const urlParams = new URLSearchParams(window.location.search);
             const isSuccess = urlParams.get('success') === 'true';
             const isPending = localStorage.getItem('psc_pending') === 'true';
 
+            console.log("[DEBUG] Init Load:", { isSuccess, isPending, search: window.location.search });
+
             if (isPending) {
                 if (isSuccess) {
-                    console.log("Payment confirmed. Resuming audit...");
-                    restoreAndRun();
-                } else {
-                    console.warn("Payment verification param missing. Showing manual recovery.");
-                    document.getElementById('payment-recovery-modal').style.display = 'flex';
-                }
+                    console.log("[DEBUG] Payment Success Detected. Attempting Restore...");
 
-                // Clean URL if success
-                if (isSuccess) {
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // 2. Restore GLOBAL state immediately
+                    const storedFile = localStorage.getItem('psc_file');
+                    const storedMime = localStorage.getItem('psc_mime');
+                    const storedManual = localStorage.getItem('psc_manual');
+
+                    if (storedFile) {
+                        uploadedFileBase64 = storedFile;
+                        uploadedFileMimeType = storedMime;
+                        console.log("[DEBUG] File restored from storage.");
+                    }
+                    if (storedManual) {
+                        manualData = storedManual;
+                        console.log("[DEBUG] Manual data restored from storage.");
+                    }
+
+                    // 3. Verify and Resume
+                    if (uploadedFileBase64 || manualData) {
+                        console.log("[DEBUG] State valid. Resuming Loader B.");
+
+                        // Clear pending flag BUT keep data until analysis starts/finishes to be safe? 
+                        // Actually, let's clear it now to prevent loops, but maybe keep data for a moment.
+                        localStorage.removeItem('psc_pending');
+
+                        // Clean URL cleanliness
+                        window.history.replaceState({}, document.title, window.location.pathname);
+
+                        // GO
+                        runLoaderB();
+                    } else {
+                        console.error("[DEBUG] Critical: No data found in storage despite pending flag.");
+                        alert("Error: your session expired. Please start over.");
+                        localStorage.removeItem('psc_pending');
+                    }
+                } else {
+                    // Pending but NO success param (e.g. back button or user closed tab)
+                    console.warn("[DEBUG] Pending flag present but no success param.");
+                    // Do NOT clear pending immediately? Or do we?
+                    // If we don't clear, they get stuck in this check loop if they just reload.
+                    // The user is complaining about the quiz resetting. 
+                    // If they come back without success=true, we SHOULD reset or just stay on landing.
+                    localStorage.removeItem('psc_pending');
                 }
             }
         });
-
-        function restoreAndRun() {
-            // Restore state
-            uploadedFileBase64 = localStorage.getItem('psc_file');
-            uploadedFileMimeType = localStorage.getItem('psc_mime');
-            manualData = localStorage.getItem('psc_manual');
-
-            // Clean up 
-            localStorage.removeItem('psc_pending');
-            localStorage.removeItem('psc_file');
-            localStorage.removeItem('psc_mime');
-            localStorage.removeItem('psc_manual');
-
-            // Resume
-            if (uploadedFileBase64 || manualData) {
-                runLoaderB();
-            } else {
-                alert("Session expired. Please start over.");
-                cancelPaymentRecovery();
-            }
-        }
-
-        window.confirmManualPayment = function () {
-            document.getElementById('payment-recovery-modal').style.display = 'none';
-            restoreAndRun();
-        }
-
-        window.cancelPaymentRecovery = function () {
-            document.getElementById('payment-recovery-modal').style.display = 'none';
-            localStorage.removeItem('psc_pending');
-            localStorage.removeItem('psc_file');
-            localStorage.removeItem('psc_mime');
-            localStorage.removeItem('psc_manual');
-        }
 
         // --- Analytics Hook ---
         function trackEvent(eventName, eventData) {
