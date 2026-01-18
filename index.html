@@ -838,23 +838,37 @@
 
         // Check for return from payment
         window.addEventListener('load', () => {
-            if (sessionStorage.getItem('psc_pending') === 'true') {
-                console.log("Resuming from payment...");
+            const urlParams = new URLSearchParams(window.location.search);
+            const isSuccess = urlParams.get('success') === 'true';
+            const isPending = sessionStorage.getItem('psc_pending') === 'true';
 
-                // Restore state
-                uploadedFileBase64 = sessionStorage.getItem('psc_file');
-                uploadedFileMimeType = sessionStorage.getItem('psc_mime');
-                manualData = sessionStorage.getItem('psc_manual');
+            if (isPending) {
+                if (isSuccess) {
+                    console.log("Payment confirmed. Resuming audit...");
 
-                // Clear storage
+                    // Restore state
+                    uploadedFileBase64 = sessionStorage.getItem('psc_file');
+                    uploadedFileMimeType = sessionStorage.getItem('psc_mime');
+                    manualData = sessionStorage.getItem('psc_manual');
+
+                    // Resume
+                    if (uploadedFileBase64 || manualData) {
+                        runLoaderB();
+                    }
+                } else {
+                    console.warn("Payment verification failed or cancelled.");
+                    // Optionally could alert user or just do nothing (stay on landing/current page)
+                }
+
+                // Clean up 
                 sessionStorage.removeItem('psc_pending');
                 sessionStorage.removeItem('psc_file');
                 sessionStorage.removeItem('psc_mime');
                 sessionStorage.removeItem('psc_manual');
 
-                // Resume
-                if (uploadedFileBase64 || manualData) {
-                    runLoaderB();
+                // Clean URL
+                if (isSuccess) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
                 }
             }
         });
