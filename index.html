@@ -842,16 +842,25 @@
         const STRIPE_LINK = "https://buy.stripe.com/bJecN59bv8Ym3wG5QXbQY07";
 
         window.initiatePurchase = function () {
-            // Save state
-            if (uploadedFileBase64) localStorage.setItem('psc_file', uploadedFileBase64);
-            if (uploadedFileMimeType) localStorage.setItem('psc_mime', uploadedFileMimeType);
-            if (manualData) localStorage.setItem('psc_manual', manualData);
+            try {
+                // Save state
+                if (uploadedFileBase64) localStorage.setItem('psc_file', uploadedFileBase64);
+                if (uploadedFileMimeType) localStorage.setItem('psc_mime', uploadedFileMimeType);
+                if (manualData) localStorage.setItem('psc_manual', manualData);
 
-            // Set flag
-            localStorage.setItem('psc_pending', 'true');
+                // Set flag
+                localStorage.setItem('psc_pending', 'true');
 
-            // Redirect
-            window.location.href = STRIPE_LINK;
+                // Redirect
+                window.location.href = STRIPE_LINK;
+            } catch (e) {
+                console.error("Storage Error:", e);
+                if (e.name === 'QuotaExceededError') {
+                    alert("Device Storage Full: usage limit exceeded. Please verify local storage is enabled or try a smaller file.");
+                } else {
+                    alert("Session Saving Failed: " + e.message);
+                }
+            }
         }
 
         // Check for return from payment
@@ -904,12 +913,12 @@
                 } else {
                     // Pending but NO success param (e.g. back button or user closed tab)
                     console.warn("[DEBUG] Pending flag present but no success param.");
-                    // Do NOT clear pending immediately? Or do we?
-                    // If we don't clear, they get stuck in this check loop if they just reload.
-                    // The user is complaining about the quiz resetting. 
-                    // If they come back without success=true, we SHOULD reset or just stay on landing.
                     localStorage.removeItem('psc_pending');
                 }
+            } else if (isSuccess) {
+                // Success TRUE, but Pending FALSE
+                console.warn("[DEBUG] Success param found, but no pending session.");
+                alert("Audit session not found. It seems you may have switched devices or browsers. Please start the audit again on this device.");
             }
         });
 
@@ -1052,12 +1061,69 @@
             nextScreen('screen-report');
         }
 
+        window.initiatePurchase = function () {
+            try {
+                // Save state
+                if (uploadedFileBase64) localStorage.setItem('psc_file', uploadedFileBase64);
+                if (uploadedFileMimeType) localStorage.setItem('psc_mime', uploadedFileMimeType);
+                if (manualData) localStorage.setItem('psc_manual', manualData);
+
+                // Set flag
+                localStorage.setItem('psc_pending', 'true');
+
+                // Redirect
+                window.location.href = STRIPE_LINK;
+            } catch (e) {
+                console.error("Storage Error:", e);
+                if (e.name === 'QuotaExceededError') {
+                    alert("Your image is too large to save for the redirect. Please try a smaller image or screenshot.");
+                } else {
+                    alert("Could not save session: " + e.message);
+                }
+            }
+        }
+
+        // ...
+
         function toBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result.split(',')[1]);
-                reader.onerror = error => reject(error);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+
+                        // Resize to max 1000px to ensure it fits in localStorage
+                        const MAX_SIZE = 1000;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_SIZE) {
+                                height *= MAX_SIZE / width;
+                                width = MAX_SIZE;
+                            }
+                        } else {
+                            if (height > MAX_SIZE) {
+                                width *= MAX_SIZE / height;
+                                height = MAX_SIZE;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Compress to JPEG 0.7
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                        resolve(dataUrl.split(',')[1]);
+                    };
+                    img.onerror = reject;
+                };
+                reader.onerror = reject;
             });
         }
 
