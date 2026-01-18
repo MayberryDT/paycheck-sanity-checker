@@ -11,14 +11,23 @@ dotenv.config();
 export const app = express();
 const port = 3000;
 
-// ESM __dirname fix
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// ESM __dirname fix (Handle Bundlers/Netlify where import.meta.url might be undefined)
+let __dirname = '';
+try {
+    if (import.meta && import.meta.url) {
+        const __filename = fileURLToPath(import.meta.url);
+        __dirname = path.dirname(__filename);
+    }
+} catch (e) {
+    console.log("Could not resolve __dirname via import.meta.url, likely bundled.");
+}
 
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(__dirname)); // Serve client files
+if (__dirname) {
+    app.use(express.static(__dirname)); // Serve client files only if we can find them
+}
 
 // --- AI SETUP (NEW SDK) ---
 const apiKey = process.env.GEMINI_API_KEY;
