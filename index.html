@@ -667,7 +667,7 @@
                             <span style="font-family: 'Chivo Mono'; font-size: 0.7rem; color: #888;">ONE-TIME AUDIT
                                 FEE</span>
                         </div>
-                        <button class="btn-primary" onclick="runLoaderB()"
+                        <button class="btn-primary" onclick="initiatePurchase()"
                             style="background-color: var(--safety-orange);">Unlock Analysis</button>
                     </div>
                     <div style="text-align: center; margin-top: 1.5rem; font-size: 0.7rem;">
@@ -815,9 +815,49 @@
         const PROXY_URL = "/api/analyze";
 
         // --- State ---
+        // --- State ---
         let uploadedFileBase64 = null;
         let manualData = null;
         let aiResult = null;
+
+        // --- Stripe Integration ---
+        const STRIPE_LINK = "https://buy.stripe.com/bJecN59bv8Ym3wG5QXbQY07";
+
+        window.initiatePurchase = function () {
+            // Save state
+            if (uploadedFileBase64) sessionStorage.setItem('psc_file', uploadedFileBase64);
+            if (uploadedFileMimeType) sessionStorage.setItem('psc_mime', uploadedFileMimeType);
+            if (manualData) sessionStorage.setItem('psc_manual', manualData);
+
+            // Set flag
+            sessionStorage.setItem('psc_pending', 'true');
+
+            // Redirect
+            window.location.href = STRIPE_LINK;
+        }
+
+        // Check for return from payment
+        window.addEventListener('load', () => {
+            if (sessionStorage.getItem('psc_pending') === 'true') {
+                console.log("Resuming from payment...");
+
+                // Restore state
+                uploadedFileBase64 = sessionStorage.getItem('psc_file');
+                uploadedFileMimeType = sessionStorage.getItem('psc_mime');
+                manualData = sessionStorage.getItem('psc_manual');
+
+                // Clear storage
+                sessionStorage.removeItem('psc_pending');
+                sessionStorage.removeItem('psc_file');
+                sessionStorage.removeItem('psc_mime');
+                sessionStorage.removeItem('psc_manual');
+
+                // Resume
+                if (uploadedFileBase64 || manualData) {
+                    runLoaderB();
+                }
+            }
+        });
 
         // --- Analytics Hook ---
         function trackEvent(eventName, eventData) {
