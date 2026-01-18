@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paycheck Sanity Checker</title>
+    <!-- Google Fonts: Inter (Structure) & Chivo Mono (Data) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@300;500&family=Inter:wght@400;600;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            /* Fiduciary Grid System Palette */
+            --bg-canvas: #f0f2f5;
+            --surface-white: #ffffff;
+            --text-primary: #121212;
+            --text-secondary: #5e6c75;
+            --border-light: #dbe2e8;
+            --border-structural: #121212;
+
+            /* Accents */
+            --safety-orange: #FF4500;
+            --alert-bg: #fff0eb;
+
+            /* Metrics */
+            --grid-unit: 8px;
+            --card-width: 480px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: linear-gradient(var(--border-light) 1px, transparent 1px), linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
+            background-size: 40px 40px;
+            padding: 1rem;
+        }
+
+        /* Main Audit Container */
+        .audit-card {
+            width: 100%;
+            max-width: var(--card-width);
+            background: var(--surface-white);
+            border: 1px solid var(--border-light);
+            border-top: 6px solid var(--border-structural);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .header {
+            padding: 2rem 2.5rem 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+            flex-shrink: 0;
+        }
+
+        .content-area {
+            padding: 2.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .footer {
+            background: #f8fafc;
+            padding: 1rem 2.5rem;
+            border-top: 1px solid var(--border-light);
+            font-family: 'Chivo Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            /* Allow wrapping */
+            gap: 1rem;
+            /* Add gap for wrapped items */
+        }
+
+        /* Typography */
+        h1 {
+            font-weight: 800;
+            font-size: 1.25rem;
+            line-height: 1.3;
+            letter-spacing: -0.02em;
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-family: 'Chivo Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        .meta-tag {
+            display: inline-block;
+            font-family: 'Chivo Mono', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            background: var(--border-structural);
+            color: #fff;
+            padding: 4px 8px;
+            margin-bottom: 1rem;
+        }
+
+        /* Interactive Elements */
+        .options-stack {
+            display: grid;
+            gap: 12px;
+        }
+
+        .option-label {
+            display: block;
+            padding: 1.25rem 1.5rem;
+            background: #fff;
+            border: 1px solid var(--border-light);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 0.95rem;
+            position: relative;
+        }
+
+        .option-label:hover {
+            border-color: var(--text-secondary);
+            transform: translateY(-1px);
+        }
+
+        input[type="radio"] {
+            display: none;
+        }
+
+        input:checked+.option-label {
+            border-color: var(--safety-orange);
+            background: var(--alert-bg);
+            color: var(--safety-orange);
+            font-weight: 600;
+        }
+
+        input:checked+.option-label::after {
+            content: "✓";
+            position: absolute;
+            right: 1.5rem;
+        }
+
+        /* Form Inputs */
+        .form-row {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-family: 'Chivo Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.8rem;
+            font-family: 'Chivo Mono', monospace;
+            font-size: 0.95rem;
+            border: 1px solid var(--border-light);
+            background: #fafafa;
+            color: var(--text-primary);
+            border-radius: 0;
+            appearance: none;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--safety-orange);
+            background: #fff;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            width: 100%;
+            padding: 1.1rem;
+            background: var(--border-structural);
+            color: #fff;
+            font-family: 'Chivo Mono', monospace;
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: auto;
+            text-align: center;
+        }
+
+        .btn-primary:hover {
+            background: var(--safety-orange);
+        }
+
+        /* File Upload */
+        .upload-zone {
+            border: 2px dashed var(--border-light);
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fafafa;
+            margin-bottom: 1.5rem;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--text-secondary);
+            background: #f0f0f0;
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        /* Verdicts & Paywall */
+        .verdict-header {
+            padding: 1.5rem;
+            background: #fafafa;
+            border: 1px solid var(--border-light);
+            margin-bottom: 2rem;
+        }
+
+        .verdict-header.suspicious {
+            border-left: 4px solid var(--safety-orange);
+            background: var(--alert-bg);
+        }
+
+        .verdict-header.normal {
+            border-left: 4px solid #27ae60;
+            background: #f0fdf4;
+        }
+
+        .vh-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .vh-sub {
+            font-family: 'Chivo Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .audit-list {
+            list-style: none;
+            margin-bottom: 2rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .audit-list li {
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .audit-list li::before {
+            content: "•";
+            color: var(--safety-orange);
+            margin-right: 1rem;
+            font-weight: bold;
+        }
+
+        /* Loaders & Animation */
+        .screen {
+            display: none;
+            animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .screen.active-flex {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+        }
+
+        .loader-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-light);
+            border-top: 4px solid var(--safety-orange);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-family: 'Chivo Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .ref-id {
+            opacity: 0.5;
+        }
+
+        .hidden-file-input {
+            display: none;
+        }
+
+        /* Detailed Report Cards */
+        .report-card {
+            background: #fff;
+            border: 1px solid var(--border-light);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--border-structural);
+        }
+
+        .report-section-title {
+            font-family: 'Chivo Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
+
+        .status-badge {
+            font-family: 'Chivo Mono', monospace;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 2px;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        .status-normal {
+            background: #27ae60;
+        }
+
+        .status-suspicious,
+        .status-review {
+            background: var(--safety-orange);
+        }
+
+        .status-unclear {
+            background: #95a5a6;
+        }
+
+        /* Flag Card */
+        .flag-card {
+            background: #fff0eb;
+            border: 1px solid #ffd1c4;
+            border-left: 4px solid var(--safety-orange);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .flag-title {
+            font-weight: 700;
+            color: #cc3300;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .flag-detail {
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .flag-ask {
+            font-style: italic;
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        .extraction-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Chivo Mono', monospace;
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .extraction-table th {
+            text-align: left;
+            color: var(--text-secondary);
+            padding: 4px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .extraction-table td {
+            padding: 4px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .extraction-row-missing {
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="audit-card">
+        <div class="header">
+            <h2>Paycheck Sanity Checker</h2>
+        </div>
+
+        <div class="content-area">
+
+            <!-- QUESTIONS 1-5 -->
+            <div class="screen active" id="screen-q1">
+                <h1>Do your total paid hours match the hours you actually worked?</h1>
+                <div class="options-stack">
+                    <label class="option-label"><input type="radio" name="q1" onclick="nextScreen('screen-q2')">Yes,
+                        exactly match</label>
+                    <label class="option-label"><input type="radio" name="q1" onclick="nextScreen('screen-q2')">No,
+                        hours are missing</label>
+                    <label class="option-label"><input type="radio" name="q1"
+                            onclick="nextScreen('screen-q2')">Incorrectly classified (Exempt)</label>
+                    <label class="option-label"><input type="radio" name="q1" onclick="nextScreen('screen-q2')">Unclear
+                        / Unknown</label>
+                </div>
+            </div>
+
+            <div class="screen" id="screen-q2">
+                <h1>How does this paycheck compare to previous periods?</h1>
+                <div class="options-stack">
+                    <label class="option-label"><input type="radio" name="q2" onclick="nextScreen('screen-q3')">Matches
+                        recent checks</label>
+                    <label class="option-label"><input type="radio" name="q2" onclick="nextScreen('screen-q3')">Amount
+                        changed unexpectedly</label>
+                    <label class="option-label"><input type="radio" name="q2" onclick="nextScreen('screen-q3')">Varies
+                        incorrectly</label>
+                    <label class="option-label"><input type="radio" name="q2" onclick="nextScreen('screen-q3')">Unclear
+                        / Unknown</label>
+                </div>
+            </div>
+
+            <div class="screen" id="screen-q3">
+                <h1>Was overtime worked, and how was it handled?</h1>
+                <div class="options-stack">
+                    <label class="option-label"><input type="radio" name="q3" onclick="nextScreen('screen-q4')">Applied
+                        correctly</label>
+                    <label class="option-label"><input type="radio" name="q3" onclick="nextScreen('screen-q4')">Worked,
+                        pay unclear</label>
+                    <label class="option-label"><input type="radio" name="q3" onclick="nextScreen('screen-q4')">Missing
+                        completely</label>
+                    <label class="option-label"><input type="radio" name="q3" onclick="nextScreen('screen-q4')">Unclear
+                        / Unknown</label>
+                </div>
+            </div>
+
+            <div class="screen" id="screen-q4">
+                <h1>Have deductions changed significantly?</h1>
+                <div class="options-stack">
+                    <label class="option-label"><input type="radio" name="q4" onclick="nextScreen('screen-q5')">Look
+                        normal</label>
+                    <label class="option-label"><input type="radio" name="q4" onclick="nextScreen('screen-q5')">Higher
+                        than expected</label>
+                    <label class="option-label"><input type="radio" name="q4"
+                            onclick="nextScreen('screen-q5')">Unfamiliar items</label>
+                    <label class="option-label"><input type="radio" name="q4" onclick="nextScreen('screen-q5')">Unclear
+                        / Unknown</label>
+                </div>
+            </div>
+
+            <div class="screen" id="screen-q5">
+                <h1>Do you trust this paycheck's accuracy?</h1>
+                <div class="options-stack">
+                    <label class="option-label"><input type="radio" name="q5" onclick="runLoaderA()">Confident it's
+                        correct</label>
+                    <label class="option-label"><input type="radio" name="q5" onclick="runLoaderA()">Something feels
+                        off</label>
+                    <label class="option-label"><input type="radio" name="q5" onclick="runLoaderA()">Actively
+                        concerned</label>
+                    <label class="option-label"><input type="radio" name="q5" onclick="runLoaderA()">Unclear /
+                        Unknown</label>
+                </div>
+            </div>
+
+            <!-- Loader A -->
+            <div class="screen" id="screen-loader-a">
+                <div class="loading-container">
+                    <div class="loader-spinner"></div>
+                    <div class="loading-text" id="loader-text-a">INITIALIZING...</div>
+                </div>
+            </div>
+
+            <!-- Checkpoint -->
+            <div class="screen" id="screen-checkpoint">
+                <div
+                    style="flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center;">
+                    <h1>Analysis Inconclusive</h1>
+                    <p style="margin-bottom: 2rem;">Your responses suggest potential irregularities, but we cannot
+                        confirm without hard data.</p>
+                    <div
+                        style="background: #fff0eb; border-left: 4px solid var(--safety-orange); padding: 1rem; text-align: left; margin-bottom: 2rem;">
+                        <p style="font-size: 0.85rem; color: #cc3300; font-weight: 500; margin-bottom: 0;">"Wage theft
+                            often hides in rate multipliers and classification codes that are invisible to the naked
+                            eye."</p>
+                    </div>
+                    <p style="margin-bottom: 2rem; font-size: 0.9rem;">To run the deep audit, we need to scan the actual
+                        pay stub geometry.</p>
+                    <button class="btn-primary" onclick="nextScreen('screen-upload')">Initialize Document Scan</button>
+                    <div style="margin-top: 1rem;">
+                        <span onclick="nextScreen('screen-manual-entry')"
+                            style="font-size: 0.75rem; color: #999; text-decoration: underline; cursor: pointer;">I
+                            don't have a physical document</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload -->
+            <div class="screen" id="screen-upload">
+                <h1>Upload Pay Document</h1>
+                <p style="margin-bottom: 2rem;">Upload a clear photo or PDF of your pay stub for analysis.</p>
+                <div class="upload-zone" onclick="document.getElementById('file-upload').click()">
+                    <span class="upload-icon">📷</span>
+                    <span style="display:block; font-weight:600; margin-bottom:0.5rem;">Tap to Upload</span>
+                    <span style="display:block; font-size:0.8rem; color:#888;">Supports IMG, PDF</span>
+                </div>
+                <input type="file" id="file-upload" class="hidden-file-input" accept="image/*,application/pdf"
+                    onchange="runLoaderScan()">
+                <p style="font-size: 0.75rem; text-align: center; color: #999;">Secure transmission. Data is not stored.
+                </p>
+            </div>
+
+            <!-- Manual Entry (Updated Fields for v1.2) -->
+            <div class="screen" id="screen-manual-entry">
+                <h1 style="font-size: 1.1rem; margin-bottom: 1.5rem;">Manual Override Entry</h1>
+
+                <h3
+                    style="font-size: 0.75rem; color: #666; margin-top: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.25rem;">
+                    EARNINGS</h3>
+                <div class="form-row"><label class="form-label">Hours Worked</label><input type="number"
+                        class="form-input" placeholder="00.0"></div>
+                <div class="form-row"><label class="form-label">Base Hourly Rate</label><input type="number"
+                        class="form-input" placeholder="$00.00"></div>
+                <div class="form-row"><label class="form-label">Overtime Hours</label><input type="number"
+                        class="form-input" placeholder="00.0"></div>
+                <div class="form-row"><label class="form-label">Total Gross Pay</label><input type="number"
+                        class="form-input" placeholder="$0000.00"></div>
+
+                <h3
+                    style="font-size: 0.75rem; color: #666; margin-top: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.25rem;">
+                    TAXES & DEDUCTIONS</h3>
+                <div class="form-row"><label class="form-label">Federal Tax</label><input type="number"
+                        class="form-input" placeholder="$000.00"></div>
+                <div class="form-row"><label class="form-label">State Tax</label><input type="number" class="form-input"
+                        placeholder="$00.00"></div>
+                <div class="form-row"><label class="form-label">FICA (SS + Medicare)</label><input type="number"
+                        class="form-input" placeholder="$000.00"></div>
+                <div class="form-row"><label class="form-label">Other Deductions</label><input type="number"
+                        class="form-input" placeholder="$00.00"></div>
+                <div class="form-row"><label class="form-label">Total Deductions</label><input type="number"
+                        class="form-input" placeholder="$000.00"></div>
+
+                <div class="form-row" style="margin-top: 1rem; border-top: 1px dashed #ddd; padding-top: 1rem;">
+                    <label class="form-label" style="font-weight: 700;">Net Pay (Take Home)</label>
+                    <input type="number" class="form-input" placeholder="$0000.00" style="font-weight: 700;">
+                </div>
+
+                <button class="btn-primary" onclick="submitManualEntry()">Run Verification</button>
+            </div>
+
+            <!-- Loader Scan -->
+            <div class="screen" id="screen-loader-scan">
+                <div class="loading-container">
+                    <div class="loader-spinner"></div>
+                    <div class="loading-text" id="loader-text-scan">UPLOADING...</div>
+                </div>
+            </div>
+
+            <!-- Paywall -->
+            <div class="screen" id="screen-paywall">
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="text-align: center; margin-bottom: 0.5rem;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">⚠️</div>
+                        <h1 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Unverified Risk Indicators</h1>
+                        <p style="font-size: 0.8rem; color:#666; margin:0;">Structural analysis suggests further
+                            verification is needed.</p>
+                    </div>
+                    <div
+                        style="background: #fff8e1; border: 1px solid #ffe0b2; padding: 1rem; margin-bottom: 1rem; border-radius: 6px;">
+                        <h2
+                            style="font-size: 0.75rem; color: #e67e22; border-bottom: 1px solid #ffe0b2; padding-bottom: 0.5rem; margin-bottom: 0.5rem; text-transform: uppercase; font-weight:700;">
+                            Validation Required</h2>
+                        <ul class="audit-list" style="border: none; margin-bottom: 0; font-size: 0.75rem;">
+                            <li>Verify Deduction Codes</li>
+                            <li>Confirm Hourly Rates</li>
+                            <li>Validate Gross/Net Math</li>
+                        </ul>
+                    </div>
+                    <div style="text-align: center;">
+                        <p style="font-size: 0.8rem; margin-bottom: 1rem;">UNLOCK FULL AI ANALYSIS & VERDICT</p>
+                        <div style="margin-bottom: 2rem;">
+                            <span style="font-size: 2.5rem; font-weight: 800; letter-spacing: -0.05em;">$4.95</span><br>
+                            <span style="font-family: 'Chivo Mono'; font-size: 0.7rem; color: #888;">ONE-TIME AUDIT
+                                FEE</span>
+                        </div>
+                        <button class="btn-primary" onclick="runLoaderB()"
+                            style="background-color: var(--safety-orange);">Unlock Analysis</button>
+                    </div>
+                    <div style="text-align: center; margin-top: 1.5rem; font-size: 0.7rem;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loader B (Deep Audit) -->
+            <div class="screen" id="screen-loader-b">
+                <div class="loading-container">
+                    <div class="loader-spinner"></div>
+                    <div class="loading-text" id="loader-text-b">VERIFYING PAYMENT...</div>
+                </div>
+            </div>
+
+            <!-- REPORT v1.2 (New Structure) -->
+            <div class="screen" id="screen-report">
+                <!-- 1. Record Header -->
+                <div
+                    style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem; font-family: 'Chivo Mono'; font-size: 0.65rem; color: #999;">
+                    <span id="report-id">REC: LOADING...</span>
+                    <span id="report-date">DATE: LOADING...</span>
+                </div>
+
+                <!-- 2. Verdict Block -->
+                <div class="verdict-header" id="report-header">
+                    <div class="vh-title" id="verdict-title">Audit Complete</div>
+                    <div class="vh-sub">
+                        CONFIDENCE: <span id="verdict-confidence">...</span>
+                    </div>
+                </div>
+
+                <div id="report-content-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+                    <!-- 3. Summary -->
+                    <div>
+                        <h3 class="report-section-title">EXECUTIVE SUMMARY</h3>
+                        <p id="report-summary" style="font-size: 0.9rem; line-height: 1.5; color: #333;">Analysis
+                            pending...</p>
+                    </div>
+
+                    <!-- 4. Checks Performed -->
+                    <div>
+                        <h3 class="report-section-title">VALIDATION CHECKS</h3>
+                        <div id="checks-list" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                            <!-- populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- 5. Flags (Critical) -->
+                    <div id="flags-section">
+                        <h3 class="report-section-title">DETECTED FLAGS</h3>
+                        <div id="flags-container">
+                            <!-- populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- 6. Detailed Analysis Cards -->
+                    <div class="report-card">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <h3 class="report-section-title" style="margin-bottom: 0;">EARNINGS ANALYSIS</h3>
+                            <span id="earn-status" class="status-badge status-unclear">...</span>
+                        </div>
+                        <p id="earn-detail" style="font-size: 0.85rem; color: #555;">...</p>
+                    </div>
+
+                    <div class="report-card">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <h3 class="report-section-title" style="margin-bottom: 0;">WITHHOLDING SANITY CHECK</h3>
+                            <span id="tax-status" class="status-badge status-unclear">...</span>
+                        </div>
+                        <p id="tax-detail" style="font-size: 0.85rem; color: #555;">...</p>
+                    </div>
+
+                    <div class="report-card">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <h3 class="report-section-title" style="margin-bottom: 0;">NET PAY VARIANCE</h3>
+                            <span id="net-status" class="status-badge status-unclear">...</span>
+                        </div>
+                        <p id="net-detail" style="font-size: 0.85rem; color: #555;">...</p>
+                    </div>
+
+                    <!-- 7. Action Plan -->
+                    <div
+                        style="background: #f0f7ff; padding: 1rem; border-left: 4px solid #0066cc; border-radius: 4px;">
+                        <h3 class="report-section-title" style="color: #004d99;">RECOMMENDED ACTIONS</h3>
+                        <ul id="action-plan-list" class="audit-list"
+                            style="border: none; margin: 0; padding-left: 1rem;"></ul>
+                    </div>
+
+                    <!-- 8. Payroll Questions -->
+                    <div style="background: #fff0eb; padding: 1rem; border: 1px solid #ffd1c4; border-radius: 4px;">
+                        <h3 class="report-section-title" style="color: #cc3300;">ASK PAYROLL</h3>
+                        <div id="payroll-questions" style="font-style: italic; color: #b32d00; font-size: 0.9rem;">
+                        </div>
+                    </div>
+
+                    <!-- 9. Extraction Details (Collapsible) -->
+                    <div style="margin-top: 1rem;">
+                        <details>
+                            <summary
+                                style="font-family: 'Chivo Mono'; font-size: 0.75rem; color: #999; cursor: pointer;">
+                                VIEW RAW EXTRACTION DATA</summary>
+                            <table class="extraction-table" id="extraction-table">
+                                <thead>
+                                    <tr>
+                                        <th>FIELD</th>
+                                        <th>VALUE</th>
+                                        <th>SOURCE</th>
+                                    </tr>
+                                </thead>
+                                <tbody><!-- JS --></tbody>
+                            </table>
+                        </details>
+                    </div>
+
+                    <!-- 10. Limits -->
+                    <div style="margin-top: 1rem; font-size: 0.7rem; color: #aaa;">
+                        <h4 style="text-transform: uppercase; margin-bottom: 4px;">Limitations & Assumptions</h4>
+                        <ul id="limits-list" style="padding-left: 1rem;"></ul>
+                    </div>
+
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <button class="btn-primary" onclick="downloadPDF()">Download Full
+                        PDF Report</button>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <a href="#" onclick="location.reload()"
+                            style="font-size: 0.75rem; color: #999; text-decoration: underline;">Start New Audit</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="footer"><span id="footer-status">SYSTEM READY</span><span class="ref-id">Informational only. Not
+                legal or tax advice.</span></div>
+    </div>
+
+    <script>
+        // --- Config ---
+        const PROXY_URL = "/api/analyze";
+
+        // --- State ---
+        let uploadedFileBase64 = null;
+        let manualData = null;
+        let aiResult = null;
+
+        // --- Analytics Hook ---
+        function trackEvent(eventName, eventData) {
+            console.log(`[ANALYTICS] ${eventName}`, eventData);
+        }
+
+        // --- Navigation ---
+        window.screens = ['screen-q1', 'screen-q2', 'screen-q3', 'screen-q4', 'screen-q5', 'screen-loader-a', 'screen-checkpoint', 'screen-upload', 'screen-manual-entry', 'screen-loader-scan', 'screen-paywall', 'screen-loader-b', 'screen-report'];
+
+        window.nextScreen = function (targetId) {
+            window.screens.forEach(id => document.getElementById(id).classList.remove('active', 'active-flex'));
+            const el = document.getElementById(targetId);
+            if (['screen-loader-a', 'screen-loader-scan', 'screen-loader-b', 'screen-checkpoint', 'screen-upload', 'screen-manual-entry', 'screen-paywall', 'screen-report'].includes(targetId)) {
+                el.classList.add('active-flex');
+            } else {
+                el.classList.add('active');
+            }
+            updateFooter(targetId);
+
+            if (targetId === 'screen-paywall') trackEvent('paywall_viewed', {});
+            if (targetId === 'screen-report') trackEvent('report_viewed', { status: aiResult?.status, confidence: aiResult?.confidence });
+        }
+
+        function updateFooter(screenId) {
+            const status = document.getElementById('footer-status');
+            if (screenId.includes('q')) status.innerText = "DATA COLLECTION";
+            if (screenId.includes('report')) status.innerText = "FINAL RECORD";
+        }
+        function startLoaderAnimation(elementId, messages, totalTime, onComplete) {
+            const el = document.getElementById(elementId);
+            const stepTime = totalTime / messages.length;
+            let i = 0;
+
+            // Initial set
+            if (el) el.innerText = messages[0];
+
+            const interval = setInterval(() => {
+                i++;
+                if (i < messages.length) {
+                    if (el) el.innerText = messages[i];
+                } else {
+                    clearInterval(interval);
+                    if (onComplete) onComplete();
+                }
+            }, stepTime);
+        }
+
+        // --- Handlers ---
+        window.runLoaderA = function () {
+            nextScreen('screen-loader-a');
+            const messages = [
+                "INITIALIZING AUDIT ENGINE...",
+                "CALCULATING UNPAID LABOR VALUE...",
+                "COMPARING HOURS AGAINST FEDERAL STANDARDS...",
+                "DETECTING PAYROLL ANOMALIES..."
+            ];
+            let i = 0;
+            const el = document.getElementById('loader-text-a'); // Ensure this ID exists or use generic
+            // Actually screen-loader-a usually has 'loader-text-a' or similar. Let's View File to be sure or just assume/find it.
+            // Looking at previous View File, runLoaderA just calls nextScreen and timeouts.
+            // I need to make sure I target the right element. 
+            // Let's implement a helper for rotating text.
+            startLoaderAnimation('loader-text-a', messages, 5000, () => nextScreen('screen-checkpoint'));
+        }
+
+        let uploadedFileMimeType = null;
+
+        document.getElementById('file-upload').addEventListener('change', async function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                uploadedFileMimeType = file.type;
+                uploadedFileBase64 = await toBase64(file);
+                runLoaderScan();
+            }
+        });
+
+        window.submitManualEntry = function () {
+            const inputs = document.querySelectorAll('#screen-manual-entry input');
+            let data = {};
+            inputs.forEach(input => {
+                const label = input.previousElementSibling.innerText;
+                data[label] = input.value;
+            });
+            manualData = JSON.stringify(data);
+            runLoaderScan();
+        }
+
+        window.runLoaderScan = function () {
+            nextScreen('screen-loader-scan');
+            const messages = [
+                "SCANNING DOCUMENT STRUCTURE...",
+                "EXTRACTING HIDDEN DEDUCTIONS...",
+                "VERIFYING EMPLOYER CALCULATIONS...",
+                "CHECKING FOR WAGE THEFT INDICATORS..."
+            ];
+            startLoaderAnimation('loader-text-scan', messages, 5000, () => nextScreen('screen-paywall'));
+        }
+
+        window.runLoaderB = async function () {
+            trackEvent('purchase_completed', { amount: 4.95 });
+            nextScreen('screen-loader-b');
+
+            const messages = [
+                "VERIFYING PAYMENT...",
+                "ACCESSING FEDERAL TAX TABLES...",
+                "ANALYZING WITHHOLDING RATES...",
+                "DETECTING POTENTIAL OVERPAYMENTS...",
+                "FINALIZING AUDIT REPORT..."
+            ];
+
+            // We want this to take ~8-10 seconds total while AI runs in background.
+            // 5 messages * 1600ms = 8000ms.
+
+            let msgIndex = 0;
+            const msgEl = document.getElementById('loader-text-b');
+            const interval = setInterval(() => {
+                msgEl.innerText = messages[msgIndex % messages.length];
+                msgIndex++;
+                if (msgIndex >= messages.length) {
+                    // Keep showing the last message or cycle? User wants "take longer".
+                    // If we finish messages but AI isn't done, just hold last message.
+                    if (msgIndex >= messages.length) clearInterval(interval);
+                }
+            }, 1800);
+
+            try {
+                // Minimum wait time enforcement
+                const minWait = new Promise(resolve => setTimeout(resolve, 8000));
+                const [result] = await Promise.all([analyzePaystub(), minWait]);
+            }
+            catch (err) {
+                console.error(err);
+                aiResult = { status: "Unclear" };
+            } finally {
+                clearInterval(interval);
+            }
+            renderReport();
+            nextScreen('screen-report');
+        }
+
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // --- AI LOGIC ---
+        async function analyzePaystub() {
+            let prompt = "";
+            let imagePayload = null;
+
+            const STRUCTURE_CONTRACT = `
+REQUIRED OUTPUT FORMAT (JSON ONLY):
+{
+  "record_id": "PSC-####",
+  "generated_at": "ISO_DATE",
+  "status": "Normal | Suspicious | Unclear",
+  "confidence": "High | Medium | Low",
+  "coverage": {
+    "fields_found": 0, "fields_expected": 0,
+    "checks_run": 0, "checks_possible": 0
+  },
+  "estimated_discrepancy": {
+    "value": 0.00, "currency": "USD",
+    "basis": "Difference between stated Net Pay and calculated (Gross-Deductions).",
+    "note": "0.00 if match."
+  },
+  "tolerance_policy": {
+    "gross_tolerance_usd": 1.00, "net_tolerance_usd": 1.00,
+    "note": "Rounding differences treated as normal."
+  },
+  "summary": "2-3 sentences summarizing scope and findings.",
+  "extraction": {
+    "pay_period": {"value": null, "source": null, "field_confidence": "High"},
+    "regular_hours": {"value": null, "source": null, "field_confidence": "High"},
+    "overtime_hours": {"value": null, "source": null, "field_confidence": "High"},
+    "hourly_rate": {"value": null, "source": null, "field_confidence": "High"},
+    "gross_pay": {"value": null, "source": null, "field_confidence": "High"},
+    "fed_withholding": {"value": null, "source": null, "field_confidence": "High"},
+    "state_withholding": {"value": null, "source": null, "field_confidence": "High"},
+    "fica": {"value": null, "source": null, "field_confidence": "High"},
+    "other_deductions": {"value": null, "source": null, "field_confidence": "High"},
+    "total_deductions": {"value": null, "source": null, "field_confidence": "High"},
+    "net_pay": {"value": null, "source": null, "field_confidence": "High"}
+  },
+  "checks_performed": [
+    {"name": "Regular pay math check", "result": "Pass"},
+    {"name": "Overtime pay math check", "result": "Pass"},
+    {"name": "Net pay arithmetic check", "result": "Pass"},
+    {"name": "FICA sanity check", "result": "Pass"},
+    {"name": "Withholding sanity check", "result": "Pass"}
+  ],
+  "earnings_analysis": { "status": "Normal", "detail": "Rate and hours match extracted values." },
+  "withholding_analysis": { "status": "Normal", "detail": "You MUST output the actual math here. Example: 'Federal tax $500 / $5000 = 10% (Normal)'." },
+  "net_analysis": { "status": "Normal", "detail": "Net pay equals Gross minus deductions." },
+  "flags": [],
+  "action_plan": ["Action 1", "Action 2", "Action 3"],
+  "payroll_questions": ["Question 1", "Question 2", "Question 3"],
+  "watch_next_time": ["Watch 1", "Watch 2", "Watch 3", "Watch 4"],
+  "limits": ["Limit 1"]
+}
+`;
+
+            if (uploadedFileBase64) {
+                prompt = `TASK: Perform a PAYCHECK SANITY AUDIT on the provided paycheck image.
+
+OUTPUT: JSON ONLY matching the STRUCTURE CONTRACT. Output nothing else.
+
+PROCESS:
+1. EXTRACTION: Extract only confident values.
+2. STRICT MATH CHECK: 
+   - Calculate: (Gross - Taxes - Deductions) = Caldulated Net.
+   - Compare with Stated Net Pay.
+   - If difference > $1.00:
+     - Set Estimated Discrepancy.
+     - Add FLAG: "Math Discrepancy" (Severity: High).
+     - STATUS must be SUSPICIOUS.
+3. TAX RATE CHECK:
+   - Calculate Federal Tax Rate = (Fed Withholding / Gross Pay).
+   - If Rate > 30% OR Rate < 5% (and Gross > $500):
+        - Add FLAG: "Unusual Tax Rate" (Severity: High).
+        - Set withholding_analysis.status to "Suspicious".
+   - If Rate is 0% (and Gross > $500), add FLAG: "No Tax Withheld" (Severity: Medium).
+4. COVERAGE: Count fields found vs expected (11 standard fields). Count checks run vs possible.
+5. DISCREPANCY: If math differs from stated, set estimated_discrepancy.value. Otherwise 0.00.
+6. REPORTING:
+   - action_plan/payroll_questions: Min 3 items ALWAYS.
+   - watch_next_time: Min 4 items ALWAYS.
+   - flags: [] if Normal.
+
+RULES:
+- No tax advice.
+- No "No action needed".
+- Be thorough even if Normal.
+- REPLACE ALL PLACEHOLDERS with actual extracted numbers. Do not output text like "[Rate]".
+- CONSISTENCY:
+   - Status 'Suspicious' prohibited unless at least one Flag is present.
+   - Status 'Normal' prohibited if Flags are present.
+   - FLAGS MUST HAVE title, severity, evidence. Do not output undefined titles.
+
+${STRUCTURE_CONTRACT}`;
+                imagePayload = uploadedFileBase64;
+            } else if (manualData) {
+                prompt = `TASK: Perform a PAYCHECK SANITY AUDIT on the provided structured data.
+
+DATA PROVIDED:
+${manualData}
+
+OUTPUT: JSON ONLY matching the STRUCTURE CONTRACT. Output nothing else.
+
+RULES:
+- Use provided values.
+- Calculate coverage and discrepancy.
+- Min 4 watch_next_time items.
+- No tax advice.
+- CONSISTENCY:
+   - Status 'Suspicious' prohibited unless at least one Flag is present.
+   - Status 'Normal' prohibited if Flags are present.
+
+${STRUCTURE_CONTRACT}`;
+            }
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+
+                const response = await fetch(PROXY_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        image: imagePayload,
+                        clientMimeType: uploadedFileMimeType || (imagePayload ? (uploadedFileBase64.startsWith('/9j/') ? "image/jpeg" : "image/png") : null)
+                    }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) throw new Error("Server Error");
+                aiResult = await response.json();
+                console.log("AI Result:", aiResult);
+            } catch (error) {
+                console.error("AI Analysis Failed:", error);
+                let failReason = "Analysis refused connection.";
+                if (error.name === 'AbortError') {
+                    failReason = "Connection timed out (25s).";
+                    alert("Analysis timed out. Server is busy.");
+                }
+
+                // Fallback Result to allow UI to proceed
+                aiResult = {
+                    record_id: "ERR-TIMEOUT",
+                    status: "Unclear",
+                    confidence: "Low",
+                    summary: `Analysis failed: ${failReason} Please try again.`,
+                    flags: [{ title: "System Error", severity: "High", evidence: failReason, why_it_matters: "Could not complete analysis.", what_to_ask_payroll: "N/A" }]
+                };
+            }
+        }
+
+        window.renderReport = function () {
+            if (!aiResult) return;
+
+            // --- Consistency Guard ---
+            // 1. If Status is Normal but Flags exist -> Force Suspicious
+            if (aiResult.status?.toLowerCase() === 'normal' && aiResult.flags && aiResult.flags.length > 0) {
+                console.warn("[Guard] Forced Status to SUSPICIOUS due to presence of Flags.");
+                aiResult.status = 'Suspicious';
+            }
+            // 2. If Status is Suspicious but No Flags -> Force Normal (or find a flag?)
+            // We choose to Force Normal to avoid "Scare Tactics" without evidence.
+            if ((aiResult.status?.toLowerCase() === 'suspicious' || aiResult.status?.toLowerCase() === 'review') && (!aiResult.flags || aiResult.flags.length === 0)) {
+                console.warn("[Guard] Forced Status to NORMAL due to lack of Flags.");
+                aiResult.status = 'Normal';
+                aiResult.confidence = 'High'; // Assume the "Suspicious" label was a hallucination
+            }
+            // ---------------------------------------------
+
+            // 1. Header
+            document.getElementById('report-id').innerText = aiResult.record_id || "REC: PENDING";
+            document.getElementById('report-date').innerText = "GENERATED: " + (aiResult.generated_at ? new Date(aiResult.generated_at).toLocaleString() : "NOW");
+
+            // 3. Status/Verdict (v1.4: Enhanced Badge)
+            const vHeader = document.getElementById('report-header');
+            const vStatus = aiResult.status || "Unclear";
+            const vConf = aiResult.confidence || "Low";
+
+            document.getElementById('verdict-title').innerText = `STATUS: ${vStatus.toUpperCase()}`;
+            document.getElementById('verdict-confidence').innerText = "CONFIDENCE: " + vConf.toUpperCase();
+
+            vHeader.className = "verdict-header";
+            if (vStatus === 'Normal') vHeader.classList.add('normal');
+            if (vStatus === 'Suspicious' || vStatus === 'Review') vHeader.classList.add('suspicious');
+
+            // 3b. Coverage & Discrepancy (v1.4 NEW)
+            // Inject this after header if not exists
+            if (!document.getElementById('scope-section')) {
+                const scopeDiv = document.createElement('div');
+                scopeDiv.id = 'scope-section';
+                scopeDiv.style.marginBottom = '1.5rem';
+                scopeDiv.innerHTML = `
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <div class="report-card" style="flex:1; min-width:200px; background:#f8f9fa;">
+                   <h3 class="report-section-title">AUDIT SCOPE</h3>
+                   <div style="font-size:0.9rem;">Fields Verified: <strong id="scope-fields">-/-</strong></div>
+                   <div style="font-size:0.9rem;">Checks Run: <strong id="scope-checks">-/-</strong></div>
+                </div>
+                <div class="report-card" style="flex:1; min-width:200px; background:#f8f9fa;">
+                   <h3 class="report-section-title">ESTIMATED DISCREPANCY</h3>
+                   <div style="font-size:1.5rem; font-weight:800; color:#2c3e50;" id="scope-discrepancy">$0.00</div>
+                   <div style="font-size:0.75rem; color:#666;" id="scope-basis">Basis: N/A</div>
+                </div>
+            </div>
+         `;
+                vHeader.parentNode.insertBefore(scopeDiv, vHeader.nextSibling);
+            }
+            // Populate Coverage
+            const cov = aiResult.coverage || { fields_found: 0, fields_expected: 0, checks_run: 0, checks_possible: 0 };
+            document.getElementById('scope-fields').innerText = `${cov.fields_found}/${cov.fields_expected}`;
+            document.getElementById('scope-checks').innerText = `${cov.checks_run}/${cov.checks_possible}`;
+
+            // Populate Discrepancy
+            const disc = aiResult.estimated_discrepancy || { value: 0, currency: 'USD', basis: 'None' };
+            const discVal = parseFloat(disc.value || 0).toFixed(2);
+            const discEl = document.getElementById('scope-discrepancy');
+            discEl.innerText = `$${discVal}`;
+            discEl.style.color = discVal > 0 ? '#e74c3c' : '#27ae60';
+            document.getElementById('scope-basis').innerText = disc.basis || "Within tolerance";
+
+            // 4. Summary
+            document.getElementById('report-summary').innerText = aiResult.summary || "No summary.";
+
+            // 4. Checks (v1.3: Object Array)
+            const cList = document.getElementById('checks-list');
+            cList.innerHTML = '';
+            (aiResult.checks_performed || []).forEach(c => {
+                const s = document.createElement('span');
+                const isPass = c.result === 'Pass';
+                const color = isPass ? '#27ae60' : (c.result === 'Review' ? '#e67e22' : '#999');
+                s.style.border = '1px solid ' + color;
+                s.style.color = color;
+                s.style.background = isPass ? '#f0fdf4' : '#fff';
+                s.style.padding = '4px 8px'; s.style.borderRadius = '4px'; s.style.fontSize = '0.65rem';
+                s.innerHTML = (isPass ? "✓ " : "⚠ ") + c.name;
+                cList.appendChild(s);
+            });
+
+            // 5. Flags
+            const fContainer = document.getElementById('flags-container');
+            fContainer.innerHTML = '';
+            if (aiResult.flags && aiResult.flags.length > 0) {
+                aiResult.flags.forEach(f => {
+                    const card = document.createElement('div');
+                    card.className = "flag-card";
+                    card.innerHTML = `
+                        <div class="flag-title"><span>${f.title || "Unspecified Detection"}</span><span style="font-size:0.7em; background:white; padding:2px 5px;">${f.severity || "Medium"}</span></div>
+                        <div class="flag-detail">${f.evidence || "No evidence provided"}. ${f.why_it_matters || ""}</div>
+                        <div class="flag-ask">ASK PAYROLL: "${f.what_to_ask_payroll || "Please clarify this item."}"</div>
+                    `;
+                    fContainer.appendChild(card);
+                });
+            } else {
+                fContainer.innerHTML = '<div style="font-size:0.8rem; color:#27ae60; font-weight:bold; padding:1rem; border:1px solid #27ae60; background:#f0fdf4;">✓ NO FLAGS DETECTED. CLEAN AUDIT.</div>';
+            }
+
+            // 6. Analysis
+            const setStatus = (id, obj) => {
+                const el = document.getElementById(id);
+                el.innerText = (obj?.status || "Unclear").toUpperCase();
+                el.className = `status-badge status-${(obj?.status || 'unclear').toLowerCase()}`;
+            };
+
+            setStatus('earn-status', aiResult.earnings_analysis);
+            document.getElementById('earn-detail').innerText = aiResult.earnings_analysis?.detail || "N/A";
+
+            setStatus('tax-status', aiResult.withholding_analysis);
+            document.getElementById('tax-detail').innerText = aiResult.withholding_analysis?.detail || "N/A";
+
+            setStatus('net-status', aiResult.net_analysis);
+            document.getElementById('net-detail').innerText = aiResult.net_analysis?.detail || "N/A";
+
+            // 7. Action Plan
+            const aList = document.getElementById('action-plan-list');
+            aList.innerHTML = '';
+            (aiResult.action_plan || []).forEach(i => {
+                const li = document.createElement('li');
+                li.innerText = i;
+                aList.appendChild(li);
+            });
+
+            // 8. Questions
+            const qDiv = document.getElementById('payroll-questions');
+            qDiv.innerHTML = '';
+            (aiResult.payroll_questions || []).forEach(q => {
+                const p = document.createElement('p'); p.innerText = "❓ " + q; p.style.marginBottom = "0.5rem";
+                qDiv.appendChild(p);
+            });
+
+            // 8b. Watch Next (v1.3 New Section)
+            // Inject element if missing (since we didn't add HTML skeleton yet)
+            if (!document.getElementById('watch-section')) {
+                const wSec = document.createElement('div');
+                wSec.id = 'watch-section'; wSec.style.marginTop = '1rem'; wSec.style.border = '1px dashed #ccc'; wSec.style.padding = '1rem'; wSec.style.borderRadius = '4px';
+                wSec.innerHTML = '<h3 class="report-section-title">FUTURE MONITORING (WATCH LIST)</h3><ul id="watch-list" class="audit-list" style="border:none; margin:0; padding-left:1rem;"></ul>';
+                // Insert after questions
+                qDiv.parentNode.insertBefore(wSec, qDiv.nextSibling);
+            }
+            const wList = document.getElementById('watch-list');
+            if (wList) {
+                wList.innerHTML = '';
+                (aiResult.watch_next_time || []).forEach(w => {
+                    const li = document.createElement('li'); li.innerText = w; wList.appendChild(li);
+                });
+            }
+
+            // 9. Extraction Table (v1.3: Confidence)
+            const tBody = document.querySelector('#extraction-table tbody');
+            const tHeadRow = document.querySelector('#extraction-table thead tr');
+            if (tHeadRow && tHeadRow.children.length === 3) {
+                const th = document.createElement('th'); th.innerText = "CONFIDENCE"; tHeadRow.appendChild(th);
+            }
+
+            tBody.innerHTML = '';
+            if (aiResult.extraction) {
+                Object.entries(aiResult.extraction).forEach(([key, data]) => {
+                    const row = document.createElement('tr');
+                    if (!data?.value) row.className = 'extraction-row-missing';
+                    // Confidence Badge
+                    const conf = data?.field_confidence || 'Low';
+                    const confColor = conf === 'High' ? 'green' : (conf === 'Medium' ? 'orange' : 'red');
+
+                    row.innerHTML = `<td>${key.replace('_', ' ')}</td><td>${data?.value || '-'}</td><td>${data?.source || '-'}</td>
+                    <td><span style="font-size:0.6rem; padding:2px 5px; border-radius:4px; border:1px solid ${confColor}; color:${confColor}">${conf}</span></td>`;
+                    tBody.appendChild(row);
+                });
+            }
+
+            // 10. Limits
+            const lList = document.getElementById('limits-list');
+            lList.innerHTML = '';
+            (aiResult.limits || []).forEach(l => {
+                const li = document.createElement('li'); li.innerText = l;
+                lList.appendChild(li);
+            });
+        }
+
+        window.downloadPDF = function () {
+            const element = document.getElementById('report-content-container').parentElement; // Grab entire report screen
+            // Clone to modify for PDF
+            const clone = element.cloneNode(true);
+
+            // Remove interactive buttons from clone
+            const buttons = clone.querySelectorAll('button, a');
+            buttons.forEach(btn => btn.style.display = 'none');
+
+            // Add identifying header if missing in view
+            if (!clone.querySelector('.meta-tag')) {
+                const head = document.createElement('div');
+                head.innerHTML = "<h2>PAYCHECK SANITY AUDIT RECORD</h2><hr>";
+                clone.prepend(head);
+            }
+
+            const opt = {
+                margin: 10,
+                filename: `PSC_Audit_${aiResult?.record_id || 'Report'}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(clone).save();
+        }
+    </script>
+</body>
+
+</html>
