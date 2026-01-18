@@ -868,8 +868,31 @@
         window.addEventListener('load', () => {
             // 1. Capture params
             const urlParams = new URLSearchParams(window.location.search);
-            const isSuccess = urlParams.get('success') === 'true';
+            const paramVal = urlParams.get('success');
+            // Allow 'true' or 'tru' (common truncation typo)
+            // Also treat ANY value as success if it starts with 't' or 'T' to be extremely safe, OR just existence if needed.
+            // Let's stick to true/tru for now to avoid false positives.
+            const isSuccess = paramVal === 'true' || paramVal === 'tru';
             const isPending = localStorage.getItem('psc_pending') === 'true';
+
+            // VISUAL DEBUGGER (Force Display for 8s)
+            // We show this if pending OR success param is detected, so user can see why it failed.
+            if (isPending || urlParams.has('success') || window.location.search.includes('success')) {
+                const dbg = document.createElement('div');
+                dbg.style.cssText = "position:fixed; top:0; left:0; width:100%; background:rgba(0,0,0,0.95); color:#0f0; font-family:monospace; padding:20px; z-index:99999; font-size:14px; pointer-events:none; white-space:pre-wrap; border-bottom:2px solid red;";
+                dbg.innerText = `DEBUG DIAGNOSTIC:
+--------------------------------
+PENDING FLAG (Storage): [${isPending}]
+SUCCESS PARAM (URL):    ["${paramVal}"]
+IS SUCCESS DETECTED?:   [${isSuccess}]
+FILE IN STORAGE?:       [${!!localStorage.getItem('psc_file')}]
+MANUAL DATA?:           [${!!localStorage.getItem('psc_manual')}]
+--------------------------------
+STATUS: ${isPending ? (isSuccess ? "RESTORING STATE..." : "FAILED: Pending but Success param invalid/checking") : "FAILED: No Pending Flag found."}`;
+                document.body.appendChild(dbg);
+                // Don't remove immediately if it's an error so they can read it
+                setTimeout(() => dbg.remove(), 10000);
+            }
 
             console.log("[DEBUG] Init Load:", { isSuccess, isPending, search: window.location.search });
 
@@ -896,14 +919,12 @@
                     if (uploadedFileBase64 || manualData) {
                         console.log("[DEBUG] State valid. Resuming Loader B.");
 
-                        // Clear pending flag BUT keep data until analysis starts/finishes to be safe? 
-                        // Actually, let's clear it now to prevent loops, but maybe keep data for a moment.
                         localStorage.removeItem('psc_pending');
+                        // Keep param for a moment so they can see debug
+                        setTimeout(() => {
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        }, 2000);
 
-                        // Clean URL cleanliness
-                        window.history.replaceState({}, document.title, window.location.pathname);
-
-                        // GO
                         runLoaderB();
                     } else {
                         console.error("[DEBUG] Critical: No data found in storage despite pending flag.");
@@ -911,8 +932,10 @@
                         localStorage.removeItem('psc_pending');
                     }
                 } else {
-                    // Pending but NO success param (e.g. back button or user closed tab)
+                    // Pending but NO success param 
                     console.warn("[DEBUG] Pending flag present but no success param.");
+                    // Do NOT clear pending immediately in case of redirect blink?
+                    // Actually, if they are here, they are barely loading.
                     localStorage.removeItem('psc_pending');
                 }
             } else if (isSuccess) {
