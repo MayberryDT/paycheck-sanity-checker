@@ -465,6 +465,32 @@
             opacity: 0.5;
         }
     </style>
+    <!-- TikTok Pixel Code Start -->
+    <script>
+        !function (w, d, t) {
+            w.TiktokAnalyticsObject = t; var ttq = w[t] = w[t] || []; ttq.methods = ["page", "track", "identify", "instances", "debug", "on", "off", "once", "ready", "alias", "group", "enableCookie", "disableCookie", "holdConsent", "revokeConsent", "grantConsent"], ttq.setAndDefer = function (t, e) { t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))) } }; for (var i = 0; i < ttq.methods.length; i++)ttq.setAndDefer(ttq, ttq.methods[i]); ttq.instance = function (t) {
+                for (
+                    var e = ttq._i[t] || [], n = 0; n < ttq.methods.length; n++)ttq.setAndDefer(e, ttq.methods[n]); return e
+            }, ttq.load = function (e, n) {
+                var r = "https://analytics.tiktok.com/i18n/pixel/events.js", o = n && n.partner; ttq._i = ttq._i || {}, ttq._i[e] = [], ttq._i[e]._u = r, ttq._t = ttq._t || {}, ttq._t[e] = +new Date, ttq._o = ttq._o || {}, ttq._o[e] = n || {}; n = document.createElement("script")
+                    ; n.type = "text/javascript", n.async = !0, n.src = r + "?sdkid=" + e + "&lib=" + t; e = document.getElementsByTagName("script")[0]; e.parentNode.insertBefore(n, e)
+            };
+
+
+            ttq.load('D5NV35BC77U85R08PGPG');
+            ttq.page();
+            ttq.track('ViewContent', {
+                "contents": [
+                    {
+                        "content_id": "home",
+                        "content_type": "product",
+                        "content_name": "Paycheck Sanity Checker"
+                    }
+                ]
+            });
+        }(window, document, 'ttq');
+    </script>
+    <!-- TikTok Pixel Code End -->
 </head>
 
 <body>
@@ -841,27 +867,7 @@
         // --- Stripe Integration ---
         const STRIPE_LINK = "https://buy.stripe.com/bJecN59bv8Ym3wG5QXbQY07";
 
-        window.initiatePurchase = function () {
-            try {
-                // Save state
-                if (uploadedFileBase64) localStorage.setItem('psc_file', uploadedFileBase64);
-                if (uploadedFileMimeType) localStorage.setItem('psc_mime', uploadedFileMimeType);
-                if (manualData) localStorage.setItem('psc_manual', manualData);
-
-                // Set flag
-                localStorage.setItem('psc_pending', 'true');
-
-                // Redirect
-                window.location.href = STRIPE_LINK;
-            } catch (e) {
-                console.error("Storage Error:", e);
-                if (e.name === 'QuotaExceededError') {
-                    alert("Device Storage Full: usage limit exceeded. Please verify local storage is enabled or try a smaller file.");
-                } else {
-                    alert("Session Saving Failed: " + e.message);
-                }
-            }
-        }
+        // (Duplicate initiatePurchase removed)
 
         // Check for return from payment
         // Check for return from payment
@@ -881,6 +887,19 @@
             if (isPending) {
                 if (isSuccess) {
                     console.log("[DEBUG] Payment Success Detected. Attempting Restore...");
+
+                    // TikTok Pixel - Purchase
+                    ttq.track('Purchase', {
+                        "contents": [
+                            {
+                                "content_id": "audit_service",
+                                "content_type": "product",
+                                "content_name": "Paycheck Audit"
+                            }
+                        ],
+                        "value": 4.95,
+                        "currency": "USD"
+                    });
 
                     // 1. Mark as Paid PERMANENTLY
                     localStorage.setItem('psc_paid', 'true');
@@ -1012,6 +1031,18 @@
         }
 
         window.runLoaderScan = function () {
+            // TikTok Pixel - CompleteRegistration (Document Uploaded/Data Entered)
+            ttq.track('CompleteRegistration', {
+                "contents": [
+                    {
+                        "content_id": "audit_request",
+                        "content_type": "product",
+                        "content_name": "Paycheck Audit Request"
+                    }
+                ],
+                "value": 0,
+                "currency": "USD"
+            });
             nextScreen('screen-loader-scan');
             const messages = [
                 "SCANNING DOCUMENT STRUCTURE...",
@@ -1065,6 +1096,18 @@
         }
 
         window.initiatePurchase = function () {
+            // TikTok Pixel - InitiateCheckout
+            ttq.track('InitiateCheckout', {
+                "contents": [
+                    {
+                        "content_id": "audit_service",
+                        "content_type": "product",
+                        "content_name": "Paycheck Audit"
+                    }
+                ],
+                "value": 4.95,
+                "currency": "USD"
+            });
             try {
                 // Save state
                 if (uploadedFileBase64) localStorage.setItem('psc_file', uploadedFileBase64);

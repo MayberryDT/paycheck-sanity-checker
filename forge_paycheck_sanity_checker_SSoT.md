@@ -114,8 +114,8 @@ Never accusatory.
 ---
 
 ## 8. Monetization
-- $7 one-time unlock
-- Synthetic payout: $3.50
+- $4.95 one-time unlock
+- Synthetic payout: $3
 - No subscriptions in v1
 
 ---
@@ -190,13 +190,12 @@ Quiz → Inputs → Paywall → Verdict
 3. Deduction spikes
 4. Paycheck anxiety
 5. Payroll mistakes are common
-6. Trust erosion (“something feels off”)
 
 ---
 
 ## 16. Creative Constraints
-- 5–15s ads
-- One hook only
+- 15-20s ads
+- One hook only per ad
 - No education
 - Visual confusion > explanation
 
@@ -213,8 +212,8 @@ Ship when:
 
 ## 18. Kill / Iterate Rules
 Kill if:
-- Spend ≥ $3.50 with zero purchases
-- CPA > payout after $7 spend
+- Spend ≥ $3 with zero purchases
+- CPA > payout after $10 spend
 
 Iterate only on flow or framing.
 
