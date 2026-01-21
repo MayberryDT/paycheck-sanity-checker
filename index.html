@@ -538,61 +538,51 @@
 
     <!-- TikTok Browser Guard -->
     <div id="tiktok-browser-guard">
-        <div class="guard-icon">🌐</div>
-        <h1 class="guard-title">Browser Not Supported</h1>
-        <p class="guard-text">To ensure your privacy and enable full analysis features, please open this page in your
-            system browser.</p>
-        <button class="btn-primary" id="btn-breakout" style="margin-bottom: 2rem;">
-            Open in System Browser
-        </button>
+        <div class="guard-icon">⚠️</div>
+        <h1 class="guard-title">Action Required</h1>
+        <p class="guard-text">This page does not support the TikTok browser.</p>
 
-        <div style="margin-bottom: 2rem;">
-            <p style="font-size: 0.8rem; color: #999; margin-bottom: 5px;">If the button doesn't work:</p>
-            <p style="font-size: 0.9rem; color: #555;">Tap <strong>•••</strong> and select <strong>"Open in
-                    Browser"</strong></p>
-        </div>
-
-        <div onclick="dismissGuard()"
-            style="font-size: 0.8rem; color: #999; text-decoration: underline; cursor: pointer; padding: 10px;">
-            I'm already in a system browser (Dismiss)
+        <div
+            style="background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 320px; text-align: left;">
+            <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                <span
+                    style="background: #000; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; flex-shrink: 0;">1</span>
+                <span style="color: #333; font-weight: 600;">Tap the <strong style="font-size: 1.2em;">•••</strong> menu
+                    in the top right.</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <span
+                    style="background: #000; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; flex-shrink: 0;">2</span>
+                <span style="color: #333; font-weight: 600;">Select <strong>"Open in Browser"</strong>.</span>
+            </div>
         </div>
     </div>
 
     <script>
-        // Unconditional Browser Guard with Breakout Logic
+        // Strict Browser Whitelist Logic
         (function () {
-            // Function to hide guard and show app
-            window.dismissGuard = function () {
+            var ua = navigator.userAgent;
+            // Detection: Check if browser is strictly Chrome or Safari (System)
+            // AND ensure it is NOT TikTok (which often masquerades as Chrome/Safari in WebView)
+            var isTikTok = ua.indexOf('TikTok') > -1;
+            var isChrome = ua.indexOf('Chrome') > -1;
+            var isSafari = ua.indexOf('Safari') > -1;
+
+            // "Valid" means: (Chrome OR Safari) AND NOT TikTok
+            var isValidBrowser = (isChrome || isSafari) && !isTikTok;
+
+            if (isValidBrowser) {
+                // If System Browser: Hide Guard, Show App
                 document.getElementById('tiktok-browser-guard').classList.add('hidden');
-                document.querySelector('.audit-card').style.display = 'flex'; // Restore main app
-            };
-
-            // 1. Check for Breakout Param (Auto-Dismiss if present)
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('browser_check') === 'passed') {
-                dismissGuard();
+                // Ensure app is visible (if it was hidden)
+                var app = document.querySelector('.audit-card');
+                if (app) app.style.display = 'flex';
             } else {
-                // If NO param, Guard is VISIBLE by default (via CSS check or fallback)
-                // We ensure 'audit-card' is hidden initially to prevent flash
-                // But CSS already has guard covering it.
+                // If Invalid (TikTok / WebView / Other): Keep Guard Visible
+                // Explicitly hide app to prevent interaction behind modal
+                var app = document.querySelector('.audit-card');
+                if (app) app.style.display = 'none';
             }
-
-            // 2. Button Logic
-            document.getElementById('btn-breakout').addEventListener('click', function () {
-                // Attempt to open system browser with the param
-                // This is the "Happy Path" to break out of Webview
-                const targetUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?browser_check=passed";
-
-                // Try window.open (Standard)
-                const newWin = window.open(targetUrl, '_system');
-
-                // Fallback: If window.open fails (common in embedded), we might try simple location + text instruction
-                if (!newWin) {
-                    // Just update location, hoping the user Manually breaks out next
-                    // or hoping 'intent' logic works in some webviews
-                    window.location.href = targetUrl;
-                }
-            });
         })();
     </script>
 
