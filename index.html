@@ -464,6 +464,46 @@
         .extraction-row-missing {
             opacity: 0.5;
         }
+
+        /* TikTok Browser Guard Modal */
+        #tiktok-browser-guard {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-canvas);
+            z-index: 10000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        #tiktok-browser-guard.active {
+            display: flex;
+        }
+
+        .guard-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .guard-title {
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .guard-text {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 400px;
+            line-height: 1.6;
+        }
     </style>
     <!-- TikTok Pixel Code Start -->
     <script>
@@ -494,6 +534,32 @@
 </head>
 
 <body>
+
+    <!-- TikTok Browser Guard -->
+    <div id="tiktok-browser-guard">
+        <div class="guard-icon">🌐</div>
+        <h1 class="guard-title">Browser Not Supported</h1>
+        <p class="guard-text">To ensure your privacy and enable full analysis features, please open this page in your
+            system browser.</p>
+        <button class="btn-primary" onclick="window.location.href = window.location.href;" style="margin-bottom: 1rem;">
+            Open in System Browser
+        </button>
+        <p style="font-size: 0.8rem; color: #999;">If the button doesn't work, tap the <strong>•••</strong> menu and
+            select <strong>"Open in Browser"</strong>.</p>
+    </div>
+
+    <script>
+        // TikTok In-App Browser Detection
+        (function () {
+            var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            // Check for TikTok-specific UA strings
+            if (userAgent.indexOf('TikTok') > -1) {
+                document.getElementById('tiktok-browser-guard').classList.add('active');
+                // Hide main content to prevent usage
+                document.querySelector('.audit-card').style.display = 'none';
+            }
+        })();
+    </script>
 
     <div class="audit-card">
         <div class="header">
@@ -594,14 +660,31 @@
                             often hides in rate multipliers and classification codes that are invisible to the naked
                             eye."</p>
                     </div>
-                    <p style="margin-bottom: 2rem; font-size: 0.9rem;">To run the deep audit, we require the precise
-                        hard numbers from your pay statement.</p>
-                    <button class="btn-primary" onclick="nextScreen('screen-manual-entry')">START DEEP AUDIT</button>
+                    <p style="margin-bottom: 2rem; font-size: 0.9rem;">To run the deep audit, we need to scan the actual
+                        pay stub geometry.</p>
+                    <button class="btn-primary" onclick="nextScreen('screen-upload')">Initialize Document Scan</button>
+                    <div style="margin-top: 1rem;">
+                        <span onclick="nextScreen('screen-manual-entry')"
+                            style="font-size: 0.75rem; color: #999; text-decoration: underline; cursor: pointer;">I
+                            don't have a physical document</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Upload Screen Removed -->
-            <!-- Manual Entry (Updated Fields for v1.2) -->
+            <!-- Upload -->
+            <div class="screen" id="screen-upload">
+                <h1>Upload Pay Document</h1>
+                <p style="margin-bottom: 2rem;">Upload a clear photo or PDF of your pay stub for analysis.</p>
+                <div class="upload-zone" onclick="document.getElementById('file-upload').click()">
+                    <span class="upload-icon">📷</span>
+                    <span style="display:block; font-weight:600; margin-bottom:0.5rem;">Tap to Upload</span>
+                    <span style="display:block; font-size:0.8rem; color:#888;">Supports IMG, PDF</span>
+                </div>
+                <input type="file" id="file-upload" class="hidden-file-input" accept="image/*,application/pdf"
+                    onchange="runLoaderScan()">
+                <p style="font-size: 0.75rem; text-align: center; color: #999;">Secure transmission. Data is not stored.
+                </p>
+            </div>
 
             <!-- Manual Entry (Updated Fields for v1.2) -->
             <div class="screen" id="screen-manual-entry">
@@ -933,12 +1016,12 @@
         }
 
         // --- Navigation ---
-        window.screens = ['screen-q1', 'screen-q2', 'screen-q3', 'screen-q4', 'screen-q5', 'screen-loader-a', 'screen-checkpoint', 'screen-manual-entry', 'screen-loader-scan', 'screen-paywall', 'screen-loader-b', 'screen-report'];
+        window.screens = ['screen-q1', 'screen-q2', 'screen-q3', 'screen-q4', 'screen-q5', 'screen-loader-a', 'screen-checkpoint', 'screen-upload', 'screen-manual-entry', 'screen-loader-scan', 'screen-paywall', 'screen-loader-b', 'screen-report'];
 
         window.nextScreen = function (targetId) {
             window.screens.forEach(id => document.getElementById(id).classList.remove('active', 'active-flex'));
             const el = document.getElementById(targetId);
-            if (['screen-loader-a', 'screen-loader-scan', 'screen-loader-b', 'screen-checkpoint', 'screen-manual-entry', 'screen-paywall', 'screen-report'].includes(targetId)) {
+            if (['screen-loader-a', 'screen-loader-scan', 'screen-loader-b', 'screen-checkpoint', 'screen-upload', 'screen-manual-entry', 'screen-paywall', 'screen-report'].includes(targetId)) {
                 el.classList.add('active-flex');
             } else {
                 el.classList.add('active');
@@ -993,7 +1076,14 @@
 
         let uploadedFileMimeType = null;
 
-        // File upload listener removed as feature is deprecated.
+        document.getElementById('file-upload').addEventListener('change', async function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                uploadedFileMimeType = file.type;
+                uploadedFileBase64 = await toBase64(file);
+                runLoaderScan();
+            }
+        });
 
         window.submitManualEntry = function () {
             const inputs = document.querySelectorAll('#screen-manual-entry input');
@@ -1021,8 +1111,8 @@
             });
             nextScreen('screen-loader-scan');
             const messages = [
-                "ANALYZING INPUT DATA...",
-                "VALIDATING FIELD INTEGRITY...",
+                "SCANNING DOCUMENT STRUCTURE...",
+                "EXTRACTING HIDDEN DEDUCTIONS...",
                 "VERIFYING EMPLOYER CALCULATIONS...",
                 "CHECKING FOR WAGE THEFT INDICATORS..."
             ];
