@@ -594,31 +594,14 @@
                             often hides in rate multipliers and classification codes that are invisible to the naked
                             eye."</p>
                     </div>
-                    <p style="margin-bottom: 2rem; font-size: 0.9rem;">To run the deep audit, we need to scan the actual
-                        pay stub geometry.</p>
-                    <button class="btn-primary" onclick="nextScreen('screen-upload')">Initialize Document Scan</button>
-                    <div style="margin-top: 1rem;">
-                        <span onclick="nextScreen('screen-manual-entry')"
-                            style="font-size: 0.75rem; color: #999; text-decoration: underline; cursor: pointer;">I
-                            don't have a physical document</span>
-                    </div>
+                    <p style="margin-bottom: 2rem; font-size: 0.9rem;">To run the deep audit, we require the precise
+                        hard numbers from your pay statement.</p>
+                    <button class="btn-primary" onclick="nextScreen('screen-manual-entry')">START DEEP AUDIT</button>
                 </div>
             </div>
 
-            <!-- Upload -->
-            <div class="screen" id="screen-upload">
-                <h1>Upload Pay Document</h1>
-                <p style="margin-bottom: 2rem;">Upload a clear photo or PDF of your pay stub for analysis.</p>
-                <div class="upload-zone" onclick="document.getElementById('file-upload').click()">
-                    <span class="upload-icon">📷</span>
-                    <span style="display:block; font-weight:600; margin-bottom:0.5rem;">Tap to Upload</span>
-                    <span style="display:block; font-size:0.8rem; color:#888;">Supports IMG, PDF</span>
-                </div>
-                <input type="file" id="file-upload" class="hidden-file-input" accept="image/*,application/pdf"
-                    onchange="runLoaderScan()">
-                <p style="font-size: 0.75rem; text-align: center; color: #999;">Secure transmission. Data is not stored.
-                </p>
-            </div>
+            <!-- Upload Screen Removed -->
+            <!-- Manual Entry (Updated Fields for v1.2) -->
 
             <!-- Manual Entry (Updated Fields for v1.2) -->
             <div class="screen" id="screen-manual-entry">
@@ -1010,14 +993,7 @@
 
         let uploadedFileMimeType = null;
 
-        document.getElementById('file-upload').addEventListener('change', async function (e) {
-            const file = e.target.files[0];
-            if (file) {
-                uploadedFileMimeType = file.type;
-                uploadedFileBase64 = await toBase64(file);
-                runLoaderScan();
-            }
-        });
+        // File upload listener removed as feature is deprecated.
 
         window.submitManualEntry = function () {
             const inputs = document.querySelectorAll('#screen-manual-entry input');
@@ -1045,8 +1021,8 @@
             });
             nextScreen('screen-loader-scan');
             const messages = [
-                "SCANNING DOCUMENT STRUCTURE...",
-                "EXTRACTING HIDDEN DEDUCTIONS...",
+                "ANALYZING INPUT DATA...",
+                "VALIDATING FIELD INTEGRITY...",
                 "VERIFYING EMPLOYER CALCULATIONS...",
                 "CHECKING FOR WAGE THEFT INDICATORS..."
             ];
