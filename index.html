@@ -933,12 +933,12 @@
         }
 
         // --- Navigation ---
-        window.screens = ['screen-q1', 'screen-q2', 'screen-q3', 'screen-q4', 'screen-q5', 'screen-loader-a', 'screen-checkpoint', 'screen-upload', 'screen-manual-entry', 'screen-loader-scan', 'screen-paywall', 'screen-loader-b', 'screen-report'];
+        window.screens = ['screen-q1', 'screen-q2', 'screen-q3', 'screen-q4', 'screen-q5', 'screen-loader-a', 'screen-checkpoint', 'screen-manual-entry', 'screen-loader-scan', 'screen-paywall', 'screen-loader-b', 'screen-report'];
 
         window.nextScreen = function (targetId) {
             window.screens.forEach(id => document.getElementById(id).classList.remove('active', 'active-flex'));
             const el = document.getElementById(targetId);
-            if (['screen-loader-a', 'screen-loader-scan', 'screen-loader-b', 'screen-checkpoint', 'screen-upload', 'screen-manual-entry', 'screen-paywall', 'screen-report'].includes(targetId)) {
+            if (['screen-loader-a', 'screen-loader-scan', 'screen-loader-b', 'screen-checkpoint', 'screen-manual-entry', 'screen-paywall', 'screen-report'].includes(targetId)) {
                 el.classList.add('active-flex');
             } else {
                 el.classList.add('active');
