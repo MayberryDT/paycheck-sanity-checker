@@ -467,7 +467,8 @@
 
         /* TikTok Browser Guard Modal */
         #tiktok-browser-guard {
-            display: none;
+            /* Enable by default to catch all traffic */
+            display: flex;
             position: fixed;
             top: 0;
             left: 0;
@@ -482,8 +483,8 @@
             text-align: center;
         }
 
-        #tiktok-browser-guard.active {
-            display: flex;
+        #tiktok-browser-guard.hidden {
+            display: none !important;
         }
 
         .guard-icon {
@@ -541,23 +542,57 @@
         <h1 class="guard-title">Browser Not Supported</h1>
         <p class="guard-text">To ensure your privacy and enable full analysis features, please open this page in your
             system browser.</p>
-        <button class="btn-primary" onclick="window.location.href = window.location.href;" style="margin-bottom: 1rem;">
+        <button class="btn-primary" id="btn-breakout" style="margin-bottom: 2rem;">
             Open in System Browser
         </button>
-        <p style="font-size: 0.8rem; color: #999;">If the button doesn't work, tap the <strong>•••</strong> menu and
-            select <strong>"Open in Browser"</strong>.</p>
+
+        <div style="margin-bottom: 2rem;">
+            <p style="font-size: 0.8rem; color: #999; margin-bottom: 5px;">If the button doesn't work:</p>
+            <p style="font-size: 0.9rem; color: #555;">Tap <strong>•••</strong> and select <strong>"Open in
+                    Browser"</strong></p>
+        </div>
+
+        <div onclick="dismissGuard()"
+            style="font-size: 0.8rem; color: #999; text-decoration: underline; cursor: pointer; padding: 10px;">
+            I'm already in a system browser (Dismiss)
+        </div>
     </div>
 
     <script>
-        // TikTok In-App Browser Detection
+        // Unconditional Browser Guard with Breakout Logic
         (function () {
-            var userAgent = navigator.userAgent || navigator.vendor || window.opera;
-            // Check for TikTok-specific UA strings
-            if (userAgent.indexOf('TikTok') > -1) {
-                document.getElementById('tiktok-browser-guard').classList.add('active');
-                // Hide main content to prevent usage
-                document.querySelector('.audit-card').style.display = 'none';
+            // Function to hide guard and show app
+            window.dismissGuard = function () {
+                document.getElementById('tiktok-browser-guard').classList.add('hidden');
+                document.querySelector('.audit-card').style.display = 'flex'; // Restore main app
+            };
+
+            // 1. Check for Breakout Param (Auto-Dismiss if present)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('browser_check') === 'passed') {
+                dismissGuard();
+            } else {
+                // If NO param, Guard is VISIBLE by default (via CSS check or fallback)
+                // We ensure 'audit-card' is hidden initially to prevent flash
+                // But CSS already has guard covering it.
             }
+
+            // 2. Button Logic
+            document.getElementById('btn-breakout').addEventListener('click', function () {
+                // Attempt to open system browser with the param
+                // This is the "Happy Path" to break out of Webview
+                const targetUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?browser_check=passed";
+
+                // Try window.open (Standard)
+                const newWin = window.open(targetUrl, '_system');
+
+                // Fallback: If window.open fails (common in embedded), we might try simple location + text instruction
+                if (!newWin) {
+                    // Just update location, hoping the user Manually breaks out next
+                    // or hoping 'intent' logic works in some webviews
+                    window.location.href = targetUrl;
+                }
+            });
         })();
     </script>
 
